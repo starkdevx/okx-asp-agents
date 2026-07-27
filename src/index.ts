@@ -7,6 +7,9 @@ import careerPilotRouter from "./careerpilot/routes";
 const app = express();
 const PORT = process.env.PORT || 3002;
 
+// Pretty-print JSON responses
+app.set("json spaces", 2);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
