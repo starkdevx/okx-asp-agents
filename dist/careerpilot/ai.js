@@ -124,7 +124,7 @@ Do not wrap the JSON output in markdown code blocks like \`\`\`json. Return pure
  */
 async function compareOpportunityWithAI(skills, summary, opp) {
     const prompt = `
-Compare the user's profile with the following opportunity and provide a match analysis, gap analysis, and study roadmap.
+Compare the user's profile with the following opportunity and provide a brief match analysis, gap analysis, and study roadmap.
 
 User Profile:
 - Skills: ${skills.join(", ")}
@@ -139,19 +139,19 @@ Opportunity Details:
 
 You must return a JSON object in the exact format:
 {
-  "matchScore": 85, // number from 0 to 100 representing suitability
-  "gapAnalysis": "### Matching Skills\\n- ...\\n### Missing Skills\\n- ...\\n### Summary\\n...", // Detailed markdown string
-  "roadmap": [ // 3-4 steps to bridge the missing skills
+  "matchScore": 85,
+  "gapAnalysis": "Match: X/Y skills. Missing: Skill1, Skill2. Focus on ...", // Brief 1-2 sentence overview
+  "roadmap": [ // Max 2 steps to bridge the gaps
     {
-      "title": "Learn Anchor & Rust",
-      "description": "Understand Solana's Anchor framework, account model, and PDA creation.",
-      "resources": ["Solana Playground", "Anchor Book (book.anchor-lang.com)", "Solana Cookbook"],
-      "estimatedDays": 5
+      "title": "Short title",
+      "description": "Short 1-sentence action step.",
+      "resources": ["Key resource"],
+      "estimatedDays": 3
     }
   ]
 }
 
-Ensure the markdown gapAnalysis string uses proper double-escaped newlines (\\n) and is a valid JSON property. Do not wrap the JSON output in markdown code blocks like \`\`\`json. Return pure JSON text.
+Ensure the gapAnalysis is a single clean string, not containing large markdown tables. Do not wrap the JSON output in markdown code blocks like \`\`\`json. Return pure JSON text.
 `;
     try {
         const response = await gemini_1.ai.models.generateContent({
@@ -162,7 +162,12 @@ Ensure the markdown gapAnalysis string uses proper double-escaped newlines (\\n)
             },
         });
         const text = response.text || "{}";
-        return JSON.parse(text);
+        const parsed = JSON.parse(text);
+        // Enforce maximum of 2 roadmap steps to keep it clean and concise
+        if (parsed.roadmap && parsed.roadmap.length > 2) {
+            parsed.roadmap = parsed.roadmap.slice(0, 2);
+        }
+        return parsed;
     }
     catch (error) {
         console.error("AI Matching Error (falling back to programmatic heuristics):", error);
@@ -190,33 +195,26 @@ Ensure the markdown gapAnalysis string uses proper double-escaped newlines (\\n)
             matchScore = 40;
         if (missingSkills.length === 0)
             matchScore = 95;
-        // Create a detailed matching and missing checklist
-        const gapAnalysis = `### Matching Skills
-${matchedSkills.map(s => `- **${s}**: Verified in profile.`).join("\n") || "- None identified in your current skill set."}
-
-### Missing Skills
-${missingSkills.map(s => `- **${s}**: Recommended to acquire.`).join("\n") || "- You meet all stated skill requirements!"}
-
-### Summary
-You match **${matchedSkills.length}/${targetSkills.length}** core skills for this role. To increase suitability, focus on mastering the missing technologies, particularly ${missingSkills.slice(0, 2).join(" and ") || "advanced system patterns"}.`;
-        // Construct study roadmap for missing skills
-        const roadmap = missingSkills.map((skill, index) => {
-            let desc = `Understand the core constructs, libraries, and integration patterns for ${skill}.`;
-            let res = ["Official Developer Documentation"];
+        // Concise, single-line gap analysis
+        const gapAnalysis = `Match: ${matchedSkills.length}/${targetSkills.length} skills. Missing: ${missingSkills.slice(0, 3).join(", ") || "None"}. Focus on ${missingSkills[0] || "core framework"}.`;
+        // Construct study roadmap for missing skills (max 2 steps)
+        const roadmap = missingSkills.slice(0, 2).map((skill, index) => {
+            let desc = `Learn core constructs and integration patterns for ${skill}.`;
+            let res = ["Official Docs"];
             let days = 5;
             if (skill.toLowerCase().includes("solidity")) {
-                desc = "Study Ethereum EVM state mechanics, reentrancy guards, and write contract units in Foundry.";
-                res = ["CryptoZombies", "Foundry Book", "Solidity by Example"];
-                days = 6;
+                desc = "Study EVM state mechanics and test smart contracts with Foundry.";
+                res = ["Foundry Book", "Solidity Docs"];
+                days = 5;
             }
             else if (skill.toLowerCase().includes("rust") || skill.toLowerCase().includes("anchor")) {
-                desc = "Study Rust ownership, Solana's Account Model, Program Derived Addresses (PDAs), and cross-program invocation.";
-                res = ["Solana Cookbook", "Anchor Book", "Solana Playground"];
+                desc = "Study Solana's Account Model, PDAs, and write programs in Anchor.";
+                res = ["Solana Cookbook", "Anchor Book"];
                 days = 7;
             }
             else if (skill.toLowerCase().includes("react") || skill.toLowerCase().includes("next")) {
-                desc = "Build client views using React, managing state and wallet provider connections (RainbowKit/wagmi).";
-                res = ["Next.js Docs", "wagmi.sh hooks guide"];
+                desc = "Build client views using React, managing state and wallet provider connections.";
+                res = ["wagmi.sh hooks guide"];
                 days = 4;
             }
             return {
@@ -228,8 +226,8 @@ You match **${matchedSkills.length}/${targetSkills.length}** core skills for thi
         });
         if (roadmap.length === 0) {
             roadmap.push({
-                title: "Advanced Integration & Security",
-                description: `Explore auditing tools, gas optimizations, and write integration integration test suites.`,
+                title: "Ecosystem Deep Dive",
+                description: `Explore auditing guides and optimize gas logs for ${opp.ecosystem}.`,
                 resources: [`${opp.ecosystem} Dev Portal`],
                 estimatedDays: 4
             });
@@ -237,7 +235,7 @@ You match **${matchedSkills.length}/${targetSkills.length}** core skills for thi
         return {
             matchScore,
             gapAnalysis,
-            roadmap: roadmap.slice(0, 3)
+            roadmap
         };
     }
 }

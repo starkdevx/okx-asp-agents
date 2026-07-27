@@ -142,17 +142,21 @@ router.get("/opportunities", async (req: Request, res: Response) => {
     // Combine opportunities with user matching data
     const matchedFeed = opportunityDocs.map((opp: any) => {
       const match = matchDocs.find((m: any) => m.opportunityId === opp.id);
-      const app = appDocs.find((a: any) => a.opportunityId === opp.id);
 
       return {
-        ...opp,
+        id: opp.id,
+        type: opp.type,
+        title: opp.title,
+        company: opp.company,
+        ecosystem: opp.ecosystem,
+        description: opp.description,
+        url: opp.url,
         requirements: Array.isArray(opp.requirements) ? opp.requirements : JSON.parse(opp.requirements || "[]"),
         matchScore: match ? match.matchScore : 0,
         gapAnalysis: match ? match.gapAnalysis : "",
         roadmap: match 
           ? (typeof match.roadmap === "string" ? JSON.parse(match.roadmap) : match.roadmap) 
-          : [],
-        applicationStatus: app ? app.status : null,
+          : []
       };
     });
 
