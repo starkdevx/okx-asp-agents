@@ -1,4 +1,4 @@
-import { ai, MODEL_NAME } from "../../gemini";
+import { generateJson } from "../../ai_client";
 
 export interface Macros {
   protein: string;
@@ -40,49 +40,18 @@ Tasks:
 4. If a RECOVERY STATUS is active (e.g. sore muscles, low sleep, fatigue), adjust the meals and macros:
    - Provide higher protein or recovery-aiding ingredients (e.g. antioxidant-rich foods, magnesium-rich grains).
    - Suggest energy-supporting meals (complex carbohydrates) and electrolyte adjustments.
-5. Provide detailed hydration advice.`;
+5. Provide detailed hydration advice.
+
+Return a JSON object with:
+{
+  "dailyCalorieTarget": number,
+  "macros": {"protein": "string", "carbs": "string", "fat": "string"},
+  "mealPlan": {"breakfast": "string", "lunch": "string", "snack": "string", "dinner": "string"},
+  "hydrationAdvice": "string"
+}`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "OBJECT",
-          properties: {
-            dailyCalorieTarget: { type: "INTEGER", description: "Target daily calories." },
-            macros: {
-              type: "OBJECT",
-              properties: {
-                protein: { type: "STRING", description: "Protein target (e.g., '140g')." },
-                carbs: { type: "STRING", description: "Carbohydrates target (e.g., '300g')." },
-                fat: { type: "STRING", description: "Fat target (e.g., '70g')." }
-              },
-              required: ["protein", "carbs", "fat"]
-            },
-            mealPlan: {
-              type: "OBJECT",
-              properties: {
-                breakfast: { type: "STRING", description: "Breakfast description." },
-                lunch: { type: "STRING", description: "Lunch description." },
-                snack: { type: "STRING", description: "Snack description." },
-                dinner: { type: "STRING", description: "Dinner description." }
-              },
-              required: ["breakfast", "lunch", "snack", "dinner"]
-            },
-            hydrationAdvice: { type: "STRING", description: "Hydration instructions." }
-          },
-          required: ["dailyCalorieTarget", "macros", "mealPlan", "hydrationAdvice"]
-        }
-      }
-    });
-
-    const text = response.text;
-    if (!text) {
-      throw new Error("No response text from Gemini");
-    }
-    return JSON.parse(text) as NutritionCoachResponse;
+    return await generateJson<NutritionCoachResponse>(prompt);
   } catch (error) {
     console.error("Error in nutritionCoach:", error);
     // Fallback response

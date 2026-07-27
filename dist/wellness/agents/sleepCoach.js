@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.analyzeSleepAndPlanBedtime = analyzeSleepAndPlanBedtime;
-const gemini_1 = require("../../gemini");
+const ai_client_1 = require("../../ai_client");
 async function analyzeSleepAndPlanBedtime(sleepHours, sleepQuality, caffeineAfternoon, screenTimeBeforeBed) {
     const prompt = `You are the Sleep Coach agent, an expert in circadian rhythm, sleep hygiene, and recovery.
 Analyze the user's sleep logs and habits:
@@ -14,50 +14,17 @@ Tasks:
 1. Provide a detailed assessment of their sleep, explaining how caffeine/screens or low duration impacts their recovery.
 2. Recommend a realistic target bedtime (e.g., "10:30 PM").
 3. Create a step-by-step wind-down routine (3-4 steps with relative times like "9:30 PM", "9:45 PM", "10:15 PM") to prepare for that target bedtime.
-4. List critical sleep hygiene rules they must follow.`;
+4. List critical sleep hygiene rules they must follow.
+
+Return a JSON object with:
+{
+  "sleepAssessment": "string",
+  "bedtimeTarget": "string",
+  "windDownRoutine": [{"time": "string", "activity": "string"}],
+  "sleepHygieneRules": "string"
+}`;
     try {
-        const response = await gemini_1.ai.models.generateContent({
-            model: gemini_1.MODEL_NAME,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: "OBJECT",
-                    properties: {
-                        sleepAssessment: {
-                            type: "STRING",
-                            description: "Detailed analysis of the user's sleep quality and habits."
-                        },
-                        bedtimeTarget: {
-                            type: "STRING",
-                            description: "Target bedtime time (e.g., '10:15 PM')."
-                        },
-                        windDownRoutine: {
-                            type: "ARRAY",
-                            description: "Step-by-step evening wind-down routine.",
-                            items: {
-                                type: "OBJECT",
-                                properties: {
-                                    time: { type: "STRING", description: "Target time for the activity." },
-                                    activity: { type: "STRING", description: "Action to take." }
-                                },
-                                required: ["time", "activity"]
-                            }
-                        },
-                        sleepHygieneRules: {
-                            type: "STRING",
-                            description: "Critical rules regarding lights, temperature, and substances."
-                        }
-                    },
-                    required: ["sleepAssessment", "bedtimeTarget", "windDownRoutine", "sleepHygieneRules"]
-                }
-            }
-        });
-        const text = response.text;
-        if (!text) {
-            throw new Error("No response text from Gemini");
-        }
-        return JSON.parse(text);
+        return await (0, ai_client_1.generateJson)(prompt);
     }
     catch (error) {
         console.error("Error in sleepCoach:", error);

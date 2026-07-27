@@ -4,9 +4,9 @@ exports.analyzeProfileWithAI = analyzeProfileWithAI;
 exports.compareOpportunityWithAI = compareOpportunityWithAI;
 exports.generateGrantProposalWithAI = generateGrantProposalWithAI;
 exports.optimizeResumeWithAI = optimizeResumeWithAI;
-const gemini_1 = require("../gemini");
+const ai_client_1 = require("../ai_client");
 /**
- * Uses Gemini to parse resume text and GitHub metadata into a structured profile.
+ * Uses Gemini/Groq to parse resume text and GitHub metadata into a structured profile.
  */
 async function analyzeProfileWithAI(resumeText, githubRepos) {
     const githubSummary = githubRepos
@@ -44,22 +44,12 @@ Return ONLY a JSON object containing the fields:
 Do not wrap the JSON output in markdown code blocks like \`\`\`json. Return pure JSON text.
 `;
     try {
-        const response = await gemini_1.ai.models.generateContent({
-            model: gemini_1.MODEL_NAME,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-            },
-        });
-        const text = response.text || "{}";
-        return JSON.parse(text);
+        return await (0, ai_client_1.generateJson)(prompt);
     }
     catch (error) {
         console.error("AI Profile Analysis Error (falling back to programmatic heuristics):", error);
-        // Programmatic matching heuristic fallback based on resume content
         const commonWeb3Skills = ["Solidity", "Rust", "TypeScript", "JavaScript", "React", "Next.js", "Node.js", "Go", "Python", "Hardhat", "Foundry", "Anchor", "EVM", "Docker", "Git", "C++", "Sui", "Cairo", "Starknet"];
         const detectedSkills = commonWeb3Skills.filter(skill => resumeText.toLowerCase().includes(skill.toLowerCase()));
-        // Pull in languages from github repos
         githubRepos.forEach(repo => {
             if (repo.language && !detectedSkills.some(s => s.toLowerCase() === repo.language.toLowerCase())) {
                 detectedSkills.push(repo.language);
@@ -154,15 +144,7 @@ You must return a JSON object in the exact format:
 Ensure the gapAnalysis is a single clean string, not containing large markdown tables. Do not wrap the JSON output in markdown code blocks like \`\`\`json. Return pure JSON text.
 `;
     try {
-        const response = await gemini_1.ai.models.generateContent({
-            model: gemini_1.MODEL_NAME,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-            },
-        });
-        const text = response.text || "{}";
-        const parsed = JSON.parse(text);
+        const parsed = await (0, ai_client_1.generateJson)(prompt);
         // Enforce maximum of 2 roadmap steps to keep it clean and concise
         if (parsed.roadmap && parsed.roadmap.length > 2) {
             parsed.roadmap = parsed.roadmap.slice(0, 2);
@@ -171,7 +153,6 @@ Ensure the gapAnalysis is a single clean string, not containing large markdown t
     }
     catch (error) {
         console.error("AI Matching Error (falling back to programmatic heuristics):", error);
-        // Parse the opportunity requirements (can be comma-separated or space-separated)
         const targetSkills = opp.requirements
             .split(/[,;\n]/)
             .map(s => s.trim())
@@ -187,18 +168,15 @@ Ensure the gapAnalysis is a single clean string, not containing large markdown t
                 missingSkills.push(req);
             }
         });
-        // Calculate match score based on matched fraction
         const totalCount = Math.max(1, targetSkills.length);
         const scoreFraction = matchedSkills.length / totalCount;
-        let matchScore = Math.round(50 + (scoreFraction * 40)); // Baseline 50, scales to 90
+        let matchScore = Math.round(50 + (scoreFraction * 40));
         if (matchedSkills.length === 0)
             matchScore = 40;
         if (missingSkills.length === 0)
             matchScore = 95;
-        // Concise, single-line gap analysis
         const gapAnalysis = `Match: ${matchedSkills.length}/${targetSkills.length} skills. Missing: ${missingSkills.slice(0, 3).join(", ") || "None"}. Focus on ${missingSkills[0] || "core framework"}.`;
-        // Construct study roadmap for missing skills (max 2 steps)
-        const roadmap = missingSkills.slice(0, 2).map((skill, index) => {
+        const roadmap = missingSkills.slice(0, 2).map((skill) => {
             let desc = `Learn core constructs and integration patterns for ${skill}.`;
             let res = ["Official Docs"];
             let days = 5;
@@ -267,15 +245,11 @@ Format the output in clean, professional markdown. Include the following section
 Make the proposal feel realistic, technical, and compelling. Return ONLY the markdown contents.
 `;
     try {
-        const response = await gemini_1.ai.models.generateContent({
-            model: gemini_1.MODEL_NAME,
-            contents: prompt,
-        });
-        return response.text || "Failed to generate proposal.";
+        return await (0, ai_client_1.generateText)(prompt);
     }
     catch (error) {
         console.error("AI Grant Writer Error:", error);
-        return "Error: Could not connect to AI services to generate proposal. Please ensure GEMINI_API_KEY is configured.";
+        return "Error: Could not connect to AI services to generate proposal. Please ensure GROQ_KEY is configured.";
     }
 }
 /**
@@ -308,15 +282,7 @@ You must return a JSON object in the exact format:
 Make sure optimizedBullets contain 3-4 bullets highlighting how the developer's experience aligns with this role. Do not wrap the JSON output in markdown code blocks like \`\`\`json. Return pure JSON text.
 `;
     try {
-        const response = await gemini_1.ai.models.generateContent({
-            model: gemini_1.MODEL_NAME,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-            },
-        });
-        const text = response.text || "{}";
-        return JSON.parse(text);
+        return await (0, ai_client_1.generateJson)(prompt);
     }
     catch (error) {
         console.error("AI Resume Optimization Error:", error);

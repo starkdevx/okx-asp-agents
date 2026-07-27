@@ -5,7 +5,7 @@ const nutritionCoach_1 = require("./agents/nutritionCoach");
 const fitnessCoach_1 = require("./agents/fitnessCoach");
 const sleepCoach_1 = require("./agents/sleepCoach");
 const nexus_1 = require("./agents/nexus");
-const gemini_1 = require("../gemini");
+const ai_client_1 = require("../ai_client");
 const router = (0, express_1.Router)();
 // --- 1. OKX.AI MCP Gateway Endpoint ---
 router.post("/okx/mcp", async (req, res) => {
@@ -167,14 +167,7 @@ Provide a conversational response where each coach chimes in with their perspect
             role: "user",
             parts: [{ text: message }]
         });
-        const response = await gemini_1.ai.models.generateContent({
-            model: gemini_1.MODEL_NAME,
-            contents: messages,
-            config: {
-                systemInstruction: systemInstruction,
-            }
-        });
-        const reply = response.text || "I apologize, but I could not formulate a response.";
+        const reply = await (0, ai_client_1.generateText)(messages, systemInstruction);
         return res.json({
             role: systemRole,
             text: reply

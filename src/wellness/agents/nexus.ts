@@ -1,4 +1,4 @@
-import { ai, MODEL_NAME } from "../../gemini";
+import { generateJson } from "../../ai_client";
 
 export interface Adjustments {
   fitness: string;
@@ -34,40 +34,18 @@ Tasks:
    - Fitness Coach: swap high-intensity workouts with recovery activities, prevent muscle injuries.
    - Nutrition Coach: specify energy support meals (protein, complex carbs) and stress-recovery nutrients.
    - Mental Wellness Coach: recommend breathwork, mindfulness, or box-breathing.
-5. If metrics are healthy, state that the user is in optimal shape, but still provide minor positive recommendations.`;
+5. If metrics are healthy, state that the user is in optimal shape, but still provide minor positive recommendations.
+
+Return a JSON object with:
+{
+  "nexusTriggered": boolean,
+  "collaborationPath": "string",
+  "statusSummary": "string",
+  "adjustments": {"fitness": "string", "nutrition": "string", "mentalWellness": "string"}
+}`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "OBJECT",
-          properties: {
-            nexusTriggered: { type: "BOOLEAN", description: "Whether a collaboration alert was triggered." },
-            collaborationPath: { type: "STRING", description: "The agentic communication path (e.g., 'Sleep Agent -> Nexus -> Fitness Agent')." },
-            statusSummary: { type: "STRING", description: "Assessment of the user's combined wellness state." },
-            adjustments: {
-              type: "OBJECT",
-              properties: {
-                fitness: { type: "STRING", description: "Adjustments to exercise/fitness routine." },
-                nutrition: { type: "STRING", description: "Adjustments to hydration and meal plans." },
-                mentalWellness: { type: "STRING", description: "Mindfulness and stress-reduction actions." }
-              },
-              required: ["fitness", "nutrition", "mentalWellness"]
-            }
-          },
-          required: ["nexusTriggered", "collaborationPath", "statusSummary", "adjustments"]
-        }
-      }
-    });
-
-    const text = response.text;
-    if (!text) {
-      throw new Error("No response text from Gemini");
-    }
-    return JSON.parse(text) as NexusResponse;
+    return await generateJson<NexusResponse>(prompt);
   } catch (error) {
     console.error("Error in nexus collaboration:", error);
     // Fallback response

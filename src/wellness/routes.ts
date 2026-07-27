@@ -3,7 +3,7 @@ import { generateDietChart } from "./agents/nutritionCoach";
 import { generateWorkoutPlan } from "./agents/fitnessCoach";
 import { analyzeSleepAndPlanBedtime } from "./agents/sleepCoach";
 import { optimizeWellnessCollaboration } from "./agents/nexus";
-import { ai, MODEL_NAME } from "../gemini";
+import { generateText } from "../ai_client";
 
 const router = Router();
 
@@ -204,15 +204,7 @@ Provide a conversational response where each coach chimes in with their perspect
       parts: [{ text: message }]
     });
 
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: messages,
-      config: {
-        systemInstruction: systemInstruction,
-      }
-    });
-
-    const reply = response.text || "I apologize, but I could not formulate a response.";
+    const reply = await generateText(messages, systemInstruction);
 
     return res.json({
       role: systemRole,

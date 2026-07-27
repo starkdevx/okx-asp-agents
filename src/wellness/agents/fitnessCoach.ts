@@ -1,4 +1,4 @@
-import { ai, MODEL_NAME } from "../../gemini";
+import { generateJson } from "../../ai_client";
 
 export interface ExerciseStep {
   name: string;
@@ -35,47 +35,20 @@ Tasks:
 3. If a RECOVERY MODIFIER is present (e.g., poor sleep, high stress, sore muscles, injury risk), you MUST adjust the exercises to be low-intensity, focusing on flexibility, active recovery, or mobility. Do NOT recommend heavy weights or high-intensity intervals if recovery is required.
 4. List a warmup routine.
 5. Create a list of 3-5 specific exercises (providing name, sets, reps/duration, and rest time).
-6. Give critical coaching tips regarding execution, posture, and safety.`;
+6. Give critical coaching tips regarding execution, posture, and safety.
+
+Return a JSON object with:
+{
+  "routineType": "string",
+  "intensity": "string",
+  "durationMinutes": number,
+  "warmup": "string",
+  "exercises": [{"name": "string", "sets": number, "reps": "string", "restSeconds": number}],
+  "coachingTips": "string"
+}`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "OBJECT",
-          properties: {
-            routineType: { type: "STRING", description: "Name/Type of workout." },
-            intensity: { type: "STRING", description: "Workout intensity (Low, Medium, High)." },
-            durationMinutes: { type: "INTEGER", description: "Workout duration in minutes." },
-            warmup: { type: "STRING", description: "Brief warmup instruction." },
-            exercises: {
-              type: "ARRAY",
-              description: "List of exercises in the plan.",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  name: { type: "STRING", description: "Name of the exercise." },
-                  sets: { type: "INTEGER", description: "Number of sets." },
-                  reps: { type: "STRING", description: "Reps count or duration per set (e.g. '12 reps', '45 secs hold')." },
-                  restSeconds: { type: "INTEGER", description: "Seconds of rest between sets." }
-                },
-                required: ["name", "sets", "reps", "restSeconds"]
-              }
-            },
-            coachingTips: { type: "STRING", description: "Safety and execution guidelines." }
-          },
-          required: ["routineType", "intensity", "durationMinutes", "warmup", "exercises", "coachingTips"]
-        }
-      }
-    });
-
-    const text = response.text;
-    if (!text) {
-      throw new Error("No response text from Gemini");
-    }
-    return JSON.parse(text) as FitnessCoachResponse;
+    return await generateJson<FitnessCoachResponse>(prompt);
   } catch (error) {
     console.error("Error in fitnessCoach:", error);
     // Fallback response

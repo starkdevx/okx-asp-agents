@@ -1,4 +1,4 @@
-import { ai, MODEL_NAME } from "../../gemini";
+import { generateJson } from "../../ai_client";
 
 export interface WindDownStep {
   time: string;
@@ -29,52 +29,18 @@ Tasks:
 1. Provide a detailed assessment of their sleep, explaining how caffeine/screens or low duration impacts their recovery.
 2. Recommend a realistic target bedtime (e.g., "10:30 PM").
 3. Create a step-by-step wind-down routine (3-4 steps with relative times like "9:30 PM", "9:45 PM", "10:15 PM") to prepare for that target bedtime.
-4. List critical sleep hygiene rules they must follow.`;
+4. List critical sleep hygiene rules they must follow.
+
+Return a JSON object with:
+{
+  "sleepAssessment": "string",
+  "bedtimeTarget": "string",
+  "windDownRoutine": [{"time": "string", "activity": "string"}],
+  "sleepHygieneRules": "string"
+}`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "OBJECT",
-          properties: {
-            sleepAssessment: {
-              type: "STRING",
-              description: "Detailed analysis of the user's sleep quality and habits."
-            },
-            bedtimeTarget: {
-              type: "STRING",
-              description: "Target bedtime time (e.g., '10:15 PM')."
-            },
-            windDownRoutine: {
-              type: "ARRAY",
-              description: "Step-by-step evening wind-down routine.",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  time: { type: "STRING", description: "Target time for the activity." },
-                  activity: { type: "STRING", description: "Action to take." }
-                },
-                required: ["time", "activity"]
-              }
-            },
-            sleepHygieneRules: {
-              type: "STRING",
-              description: "Critical rules regarding lights, temperature, and substances."
-            }
-          },
-          required: ["sleepAssessment", "bedtimeTarget", "windDownRoutine", "sleepHygieneRules"]
-        }
-      }
-    });
-
-    const text = response.text;
-    if (!text) {
-      throw new Error("No response text from Gemini");
-    }
-    return JSON.parse(text) as SleepCoachResponse;
+    return await generateJson<SleepCoachResponse>(prompt);
   } catch (error) {
     console.error("Error in sleepCoach:", error);
     // Fallback response in case of API failure
